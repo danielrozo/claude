@@ -11,7 +11,7 @@ Use this skill when implementing API endpoints, working with ApiResult/ProcessRe
 
 - **ALWAYS** use `ApiResult` types for all API responses
 - **NEVER** return raw types or exceptions from controllers
-- **ALL** `ApiResult` types live in `Common.Contracts` project (shared across all microservices)
+- **ALL** `ApiResult` types live in `Shared.Contracts` project (shared across all microservices)
 - Use `ApiResult<T>` for operations that return data
 - Use `ApiPagedResult<T>` for paginated responses
 - **ALWAYS** use Problem Details (RFC 7807) for error responses
@@ -21,7 +21,7 @@ Use this skill when implementing API endpoints, working with ApiResult/ProcessRe
 
 - **ALWAYS** use `ProcessResult` types in Application layer (handlers, services)
 - **NEVER** use `ApiResult` directly in Application layer
-- **ALL** `ProcessResult` types live in `Common.Application` project
+- **ALL** `ProcessResult` types live in `Shared.Application` project
 - Use `ProcessResult<T>` for operations that return data
 - Use `ProcessResult` for operations that don't return data
 - Use `ProcessPagedResult<T>` for paginated results
@@ -32,9 +32,9 @@ Use this skill when implementing API endpoints, working with ApiResult/ProcessRe
 
 ```csharp
 // ✅ Correct - Controller uses ProcessResult and creates ApiResult
-public async Task<IActionResult> GetEntity([FromRoute] Guid id)
+public async Task<IActionResult> GetResource([FromRoute] Guid id)
 {
-    var processResult = await _mediator.Send(new GetEntityQuery(id));
+    var processResult = await _mediator.Send(new GetResourceQuery(id));
 
     if (processResult.IsSuccess)
     {
@@ -42,36 +42,36 @@ public async Task<IActionResult> GetEntity([FromRoute] Guid id)
     }
 
     return CreateProblemDetailsResponse(
-        "Failed to retrieve entity",
+        "Failed to retrieve resource",
         "An error occurred while processing the request");
 }
 
 // ✅ Alternative - Direct object initializer (if not using HandleSuccess)
-public async Task<IActionResult> GetEntity([FromRoute] Guid id)
+public async Task<IActionResult> GetResource([FromRoute] Guid id)
 {
-    var processResult = await _mediator.Send(new GetEntityQuery(id));
+    var processResult = await _mediator.Send(new GetResourceQuery(id));
 
     if (processResult.IsSuccess)
     {
-        return Ok(new ApiResult<Entity> { Data = processResult.Data! });
+        return Ok(new ApiResult<Resource> { Data = processResult.Data! });
     }
 
     return CreateProblemDetailsResponse(
-        "Failed to retrieve entity",
+        "Failed to retrieve resource",
         "An error occurred while processing the request");
 }
 
 // ✅ Correct - Handler uses ProcessResult (Application layer)
-public async Task<ProcessResult<Entity>> Handle(GetEntityQuery request)
+public async Task<ProcessResult<Resource>> Handle(GetResourceQuery request)
 {
     try
     {
-        var entity = await _repository.GetByIdAsync(request.Id);
-        return ProcessResult.Success(entity);
+        var resource = await _repository.GetByIdAsync(request.Id);
+        return ProcessResult.Success(resource);
     }
     catch (Exception)
     {
-        return ProcessResult.Failure<Entity>();
+        return ProcessResult.Failure<Resource>();
     }
 }
 ```
@@ -88,8 +88,8 @@ public async Task<ProcessResult<Entity>> Handle(GetEntityQuery request)
 
 **Project Dependencies:**
 
-- **Common.Application**: Only references `Common.Contracts`
-- **Common.Api**: References both `Common.Application` and `Common.Contracts`
+- **Shared.Application**: Only references `Shared.Contracts`
+- **Shared.Api**: References both `Shared.Application` and `Shared.Contracts`
 - **Dependency direction**: Application → Contracts, API → Application + Contracts
 
 ## Controller Standards
@@ -104,8 +104,8 @@ public async Task<ProcessResult<Entity>> Handle(GetEntityQuery request)
 
 ## Route Conventions
 
-- **ALWAYS** use kebab-case for multi-word routes: `api/v2/entity-types`, `api/v2/field-sets`, `api/v2/option-lists`
-- **ALWAYS** use plural nouns for collections: `entities`, `countries`, `aspects`, `entity-types`
-- **ALWAYS** use singular nouns for individual resources: `entity/{id}`, `field/{identifier}`
+- **ALWAYS** use kebab-case for multi-word routes: `api/v2/resource-types`, `api/v2/field-sets`, `api/v2/option-lists`
+- **ALWAYS** use plural nouns for collections: `entities`, `countries`, `aspects`, `resource-types`
+- **ALWAYS** use singular nouns for individual resources: `resource/{id}`, `field/{identifier}`
 - **ALWAYS** use action verbs for commands: `import`, `validate`, `process`
-- **NEVER** use camelCase or PascalCase in route segments: ❌ `api/v2/entityTypes`, ✅ `api/v2/entity-types`
+- **NEVER** use camelCase or PascalCase in route segments: ❌ `api/v2/resourceTypes`, ✅ `api/v2/resource-types`

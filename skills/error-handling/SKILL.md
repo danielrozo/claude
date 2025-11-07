@@ -19,7 +19,7 @@ Use this skill when handling errors, implementing Problem Details (RFC 7807), or
 ## Exception Hierarchy
 
 - **NEVER** throw exceptions for business rule violations
-- **ALWAYS** use `ProcessResult` pattern for business errors in Application layer (from `Common.Application.Results`)
+- **ALWAYS** use `ProcessResult` pattern for business errors in Application layer (from `Shared.Application.Results`)
 - **ONLY** throw exceptions for technical failures (DB connection, etc.)
 - **ALWAYS** log exceptions with structured logging
 - **ALWAYS** handle ProcessResult.IsSuccess in controllers
@@ -32,7 +32,7 @@ Use this skill when handling errors, implementing Problem Details (RFC 7807), or
 {
   "data": {
     "id": 1,
-    "name": "Entity",
+    "name": "Resource",
     "aspects": [...]
   }
 }
@@ -46,7 +46,7 @@ Use this skill when handling errors, implementing Problem Details (RFC 7807), or
   "title": "One or more validation errors occurred",
   "status": 400,
   "detail": "Please refer to the errors property for additional details",
-  "instance": "/api/v2/entity-types",
+  "instance": "/api/v2/resource-types",
   "errors": {
     "name": ["Name is required", "Name cannot exceed 100 characters"]
   }
@@ -58,10 +58,10 @@ Use this skill when handling errors, implementing Problem Details (RFC 7807), or
 ```json
 {
   "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-  "title": "Entity type not found",
+  "title": "Resource type not found",
   "status": 404,
-  "detail": "No entity type exists with ID 999",
-  "instance": "/api/v2/entity-types/999"
+  "detail": "No resource exists with ID 999",
+  "instance": "/api/v2/resource-types/999"
 }
 ```
 
@@ -73,7 +73,7 @@ Use this skill when handling errors, implementing Problem Details (RFC 7807), or
   "title": "Internal server error",
   "status": 500,
   "detail": "An unexpected error occurred while processing the request",
-  "instance": "/api/v2/entity-types/1"
+  "instance": "/api/v2/resource-types/1"
 }
 ```
 
@@ -91,31 +91,31 @@ Use this skill when handling errors, implementing Problem Details (RFC 7807), or
 
 ```csharp
 [HttpGet("{id:int}")]
-public async Task<IActionResult> GetEntityTypeById(int id, CancellationToken cancellationToken = default)
+public async Task<IActionResult> GetResourceTypeById(int id, CancellationToken cancellationToken = default)
 {
-    logger.LogInformation("Retrieving entity type with ID {EntityTypeId}", id);
+    logger.LogInformation("Retrieving resource with ID {ResourceTypeId}", id);
 
     try
     {
-        var processResult = await mediator.Send(new GetEntityTypeByIdQuery(id), cancellationToken);
+        var processResult = await mediator.Send(new GetResourceTypeByIdQuery(id), cancellationToken);
 
         if (processResult.IsSuccess)
         {
-            logger.LogInformation("Successfully retrieved entity type with ID {EntityTypeId}", id);
+            logger.LogInformation("Successfully retrieved resource with ID {ResourceTypeId}", id);
             return HandleSuccess(processResult.Data!); // 200 OK + ApiResult<T>
         }
 
-        // ProcessResult.Failure means entity not found (404)
-        logger.LogWarning("Entity type with ID {EntityTypeId} not found", id);
+        // ProcessResult.Failure means resource not found (404)
+        logger.LogWarning("Resource type with ID {ResourceTypeId} not found", id);
         return CreateProblemDetailsResponse(
-            "Entity type not found",
-            $"No entity type exists with ID {id}",
+            "Resource type not found",
+            $"No resource exists with ID {id}",
             StatusCodes.Status404NotFound);
     }
     catch (Exception ex)
     {
         // Unexpected exception means server error (500)
-        logger.LogError(ex, "Unexpected error occurred while retrieving entity type with ID {EntityTypeId}", id);
+        logger.LogError(ex, "Unexpected error occurred while retrieving resource with ID {ResourceTypeId}", id);
         return CreateProblemDetailsResponse(
             "Internal server error",
             "An unexpected error occurred while processing the request",

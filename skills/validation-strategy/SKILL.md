@@ -17,9 +17,9 @@ Use this skill when implementing validation logic, FluentValidation, or business
 
 ```csharp
 // ✅ Correct - FluentValidation for input validation
-public class CreateEntityTypeRequestValidator : AbstractValidator<CreateEntityTypeRequest>
+public class CreateResourceTypeRequestValidator : AbstractValidator<CreateResourceTypeRequest>
 {
-    public CreateEntityTypeRequestValidator()
+    public CreateResourceTypeRequestValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty()
@@ -39,22 +39,22 @@ public class CreateEntityTypeRequestValidator : AbstractValidator<CreateEntityTy
 
 ```csharp
 // ✅ Correct - Business validation in handler
-public async Task<ProcessResult<EntityType>> Handle(CreateEntityTypeCommand request)
+public async Task<ProcessResult<ResourceType>> Handle(CreateResourceTypeCommand request)
 {
     if (await _repository.ExistsByNameAsync(request.Name))
     {
-        return ProcessResult.Failure<EntityType>();
+        return ProcessResult.Failure<ResourceType>();
     }
 
-    var entityType = new EntityType(request.Name);
-    await _repository.SaveAsync(entityType);
-    return ProcessResult.Success(entityType);
+    var resourceType = new ResourceType(request.Name);
+    await _repository.SaveAsync(resourceType);
+    return ProcessResult.Success(resourceType);
 }
 
 // ✅ Correct - Controller handles ProcessResult
-public async Task<IActionResult> CreateEntityType(CreateEntityTypeRequest request)
+public async Task<IActionResult> CreateResourceType(CreateResourceTypeRequest request)
 {
-    var processResult = await _mediator.Send(new CreateEntityTypeCommand(request));
+    var processResult = await _mediator.Send(new CreateResourceTypeCommand(request));
 
     if (processResult.IsSuccess)
     {
@@ -62,8 +62,8 @@ public async Task<IActionResult> CreateEntityType(CreateEntityTypeRequest reques
     }
 
     return CreateProblemDetailsResponse(
-        "Failed to create entity type",
-        "Entity type with this name already exists");
+        "Failed to create resource",
+        "Resource type with this name already exists");
 }
 ```
 
@@ -124,11 +124,11 @@ public class ValidationAdapter : IValidationAdapter
 }
 
 // Application/[Command]/[Command]Validator.cs
-public class CreateEntityCommandValidator : AbstractValidator<CreateEntityCommand>
+public class CreateResourceCommandValidator : AbstractValidator<CreateResourceCommand>
 {
     private readonly IValidationAdapter _validationAdapter;
 
-    public CreateEntityCommandValidator(IValidationAdapter validationAdapter)
+    public CreateResourceCommandValidator(IValidationAdapter validationAdapter)
     {
         _validationAdapter = validationAdapter;
 
@@ -145,7 +145,7 @@ public class CreateEntityCommandValidator : AbstractValidator<CreateEntityComman
 ```csharp
 // In Program.cs or ServiceCollectionExtensions
 services.AddScoped<IValidationAdapter, ValidationAdapter>();
-services.AddValidatorsFromAssemblyContaining<CreateEntityCommandValidator>();
+services.AddValidatorsFromAssemblyContaining<CreateResourceCommandValidator>();
 services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 ```
 
@@ -162,7 +162,7 @@ services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>
 
 ```csharp
 // ❌ Incorrect - Validation in controller
-public async Task<IActionResult> CreateEntityType(CreateEntityTypeRequest request)
+public async Task<IActionResult> CreateResourceType(CreateResourceTypeRequest request)
 {
     if (string.IsNullOrEmpty(request.Name))
     {
@@ -172,7 +172,7 @@ public async Task<IActionResult> CreateEntityType(CreateEntityTypeRequest reques
 }
 
 // ❌ Incorrect - Throwing exceptions for business rules
-public async Task<ProcessResult<EntityType>> Handle(CreateEntityTypeCommand request)
+public async Task<ProcessResult<ResourceType>> Handle(CreateResourceTypeCommand request)
 {
     if (await _repository.ExistsByNameAsync(request.Name))
     {

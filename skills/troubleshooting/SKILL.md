@@ -51,12 +51,12 @@ trigger: test failure, build error, debugging, MCP error, TypeScript error, trou
 const mockRelationship = { id: 1, percentage: 50 }; // Missing new fields
 
 // Fix: Update mock to match current type
-const mockRelationship: EntityRelationship = {
+const mockRelationship: DataModel = {
   id: 1,
-  ownershipPercentage: 50,
-  staffTitle: null,
-  effectiveFrom: null,
-  effectiveTo: null,
+  percentage: 50,
+  title: null,
+  startDate: null,
+  endDate: null,
   notes: null,
   // ... other required fields
 };
@@ -70,7 +70,7 @@ expect(result.percentage).toBe(50);
 
 // Fix: Await the operation
 const result = await service.updateRelationship(data);
-expect(result.ownershipPercentage).toBe(50);
+expect(result.percentage).toBe(50);
 ```
 
 **Mock Configuration:**
@@ -80,7 +80,7 @@ jest.spyOn(service, 'validate').mockResolvedValue(true);
 
 // Fix: Handle new parameters
 jest.spyOn(service, 'validate')
-  .mockImplementation(async (entityId, percentage) => {
+  .mockImplementation(async (resourceId, percentage) => {
     return percentage <= 100;
   });
 ```
@@ -94,8 +94,8 @@ jest.spyOn(service, 'validate')
    - Identify the error code (TS2345, TS2339, etc.)
 
 2. **Explain TypeScript errors in plain language**
-   - "Property 'percentage' doesn't exist on type 'EntityRelationship'"
-   - → The type definition is outdated, needs 'ownershipPercentage'
+   - "Property 'percentage' doesn't exist on type 'DataModel'"
+   - → The type definition is outdated, needs 'percentage'
 
 3. **Fix type mismatches at source**
    - Update type definitions first
@@ -111,22 +111,22 @@ jest.spyOn(service, 'validate')
 
 **Missing Properties:**
 ```typescript
-// Error: Property 'ownershipPercentage' does not exist on type 'EntityRelationship'
+// Error: Property 'percentage' does not exist on type 'DataModel'
 
 // Fix: Add to type definition
-interface EntityRelationship {
+interface DataModel {
   id: number;
-  ownershipPercentage?: number; // Add missing property
+  percentage?: number; // Add missing property
   // ... other properties
 }
 ```
 
 **Import Errors:**
 ```typescript
-// Error: Module '"./types"' has no exported member 'EntityRelationship'
+// Error: Module '"./types"' has no exported member 'DataModel'
 
 // Fix: Check export in types file
-export interface EntityRelationship { ... } // Ensure it's exported
+export interface DataModel { ... } // Ensure it's exported
 ```
 
 **Circular Dependencies:**
@@ -135,7 +135,7 @@ export interface EntityRelationship { ... } // Ensure it's exported
 
 // Fix: Extract shared types to separate file
 // types/shared.ts - common types
-// types/entity.ts - entity-specific types (imports from shared)
+// types/resource.ts - resource-specific types (imports from shared)
 // types/relationship.ts - relationship types (imports from shared)
 ```
 
@@ -246,16 +246,16 @@ Troubleshooting:
 console.log('Total ownership:', { current: total, new: percentage, sum: total + percentage });
 
 // Remove before commit or use proper logging
-logger.debug('Validating ownership', { entityId, percentage, currentTotal: total });
+logger.debug('Validating ownership', { resourceId, percentage, currentTotal: total });
 ```
 
 ### Debugging Validation
 ```typescript
 // Log intermediate steps
-const relationships = await getRelationships(entityId);
+const relationships = await getRelationships(resourceId);
 console.log('Found relationships:', relationships.length);
 
-const total = relationships.reduce((sum, r) => sum + (r.ownershipPercentage ?? 0), 0);
+const total = relationships.reduce((sum, r) => sum + (r.percentage ?? 0), 0);
 console.log('Current total:', total);
 
 const newTotal = total + percentage;

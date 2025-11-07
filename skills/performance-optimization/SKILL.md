@@ -16,11 +16,11 @@ trigger: performance, optimization, slow queries, bundle size, React Query, debo
 
 ### Dependent Queries
 ```typescript
-// Only fetch relationships when entity is loaded
-const { data: entity } = useGetEntityQuery(entityId);
-const { data: relationships } = useGetEntityRelationshipsQuery(
-  entityId,
-  { enabled: !!entity }
+// Only fetch relationships when resource is loaded
+const { data: resource } = useGetResourceQuery(resourceId);
+const { data: items } = useGetItemRelationshipsQuery(
+  resourceId,
+  { enabled: !!resource }
 );
 ```
 
@@ -29,13 +29,13 @@ const { data: relationships } = useGetEntityRelationshipsQuery(
 // Update UI before server responds
 const mutation = useMutation({
   onMutate: async (newData) => {
-    await queryClient.cancelQueries(['relationships', entityId]);
-    const previous = queryClient.getQueryData(['relationships', entityId]);
-    queryClient.setQueryData(['relationships', entityId], (old) => [...old, newData]);
+    await queryClient.cancelQueries(['items', resourceId]);
+    const previous = queryClient.getQueryData(['items', resourceId]);
+    queryClient.setQueryData(['items', resourceId], (old) => [...old, newData]);
     return { previous };
   },
   onError: (err, newData, context) => {
-    queryClient.setQueryData(['relationships', entityId], context.previous);
+    queryClient.setQueryData(['items', resourceId], context.previous);
   },
 });
 ```
@@ -62,7 +62,7 @@ const mutation = useMutation({
   ```typescript
   const debouncedPercentage = useDebounce(percentage, 300);
   const { data: validation } = useValidateOwnershipQuery(
-    { entityId, percentage: debouncedPercentage },
+    { resourceId, percentage: debouncedPercentage },
     { enabled: !!debouncedPercentage }
   );
   ```
@@ -72,12 +72,12 @@ const mutation = useMutation({
 ### Indexes
 Add indexes for frequently queried columns:
 ```sql
-CREATE INDEX IX_EntityRelationships_TargetEntityId_RelationshipTypeId
-ON EntityRelationships(TargetEntityId, RelationshipTypeId)
+CREATE INDEX IX_ItemRelationships_TargetResourceId_TypeId
+ON ItemRelationships(TargetResourceId, TypeId)
 WHERE IsDeleted = 0;
 
-CREATE INDEX IX_EntityRelationships_EffectiveDates
-ON EntityRelationships(EffectiveFrom, EffectiveTo)
+CREATE INDEX IX_ItemRelationships_EffectiveDates
+ON ItemRelationships(EffectiveFrom, EffectiveTo)
 WHERE IsDeleted = 0 AND OwnershipPercentage IS NOT NULL;
 ```
 
@@ -85,17 +85,17 @@ WHERE IsDeleted = 0 AND OwnershipPercentage IS NOT NULL;
 - Use composite indexes for multi-column filters
 - Avoid N+1 queries with proper joins/includes:
   ```csharp
-  context.EntityRelationships
+  context.ItemRelationships
     .Include(r => r.RelationshipType)
-    .Include(r => r.TargetEntity)
-    .Include(r => r.SourceStaff)
-    .Where(r => !r.IsDeleted && r.TargetEntityId == entityId)
+    .Include(r => r.TargetResource)
+    .Include(r => r.SourceUser)
+    .Where(r => !r.IsDeleted && r.TargetResourceId == resourceId)
     .ToListAsync();
   ```
 - Use pagination for large result sets
 - Project only needed fields in queries:
   ```csharp
-  .Select(r => new EntityRelationshipDto {
+  .Select(r => new ItemDto {
     Id = r.Id,
     OwnershipPercentage = r.OwnershipPercentage,
     // ... only needed fields
@@ -106,10 +106,10 @@ WHERE IsDeleted = 0 AND OwnershipPercentage IS NOT NULL;
 - Single query to calculate total ownership
 - Use aggregation in database:
   ```csharp
-  var total = await context.EntityRelationships
+  var total = await context.ItemRelationships
     .Where(r => !r.IsDeleted
-      && r.TargetEntityId == entityId
-      && r.RelationshipTypeId == beneficialOwnerId
+      && r.TargetResourceId == resourceId
+      && r.TypeId == beneficialOwnerId
       && r.Id != currentRelationshipId // exclude current if updating
     )
     .SumAsync(r => r.OwnershipPercentage ?? 0);

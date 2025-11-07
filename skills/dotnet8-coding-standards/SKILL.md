@@ -16,47 +16,47 @@ Use this skill when writing C# code, implementing modern .NET 8 features, or rev
 
 ```csharp
 // ✅ Correct - Primary Constructor with logging
-public class EntityController(IMediator mediator, ILogger<EntityController> logger)
+public class ResourceController(IMediator mediator, ILogger<ResourceController> logger)
     : ApiControllerBase
 {
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetEntity(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetResource(Guid id, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Retrieving entity with ID {EntityId}", id);
+        logger.LogInformation("Retrieving resource with ID {ResourceId}", id);
 
-        var result = await mediator.Send(new GetEntityQuery(id), cancellationToken);
+        var result = await mediator.Send(new GetResourceQuery(id), cancellationToken);
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Successfully retrieved entity with ID {EntityId}", id);
+            logger.LogInformation("Successfully retrieved resource with ID {ResourceId}", id);
             return HandleSuccess(result.Data!);
         }
 
-        logger.LogWarning("Failed to retrieve entity with ID {EntityId}", id);
-        return CreateProblemDetailsResponse("Failed to retrieve entity", "Entity not found");
+        logger.LogWarning("Failed to retrieve resource with ID {ResourceId}", id);
+        return CreateProblemDetailsResponse("Failed to retrieve resource", "Resource not found");
     }
 }
 
 // ✅ Correct - Primary Constructor with multiple dependencies including logging
-public class EntityService(
-    IEntityRepository repository,
-    IEntityDomainService domainService,
-    ILogger<EntityService> logger) : IEntityService
+public class ResourceService(
+    IResourceRepository repository,
+    IResourceDomainService domainService,
+    ILogger<ResourceService> logger) : IResourceService
 {
-    public async Task<ProcessResult<Entity>> CreateEntityAsync(CreateEntityRequest request)
+    public async Task<ProcessResult<Resource>> CreateResourceAsync(CreateResourceRequest request)
     {
-        logger.LogInformation("Creating entity with name {EntityName}", request.Name);
+        logger.LogInformation("Creating resource with name {ResourceName}", request.Name);
 
         // Implementation with proper logging
-        var result = await domainService.CreateEntityAsync(request.Name, request.Description);
+        var result = await domainService.CreateResourceAsync(request.Name, request.Description);
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Successfully created entity with ID {EntityId}", result.Data?.Id);
+            logger.LogInformation("Successfully created resource with ID {ResourceId}", result.Data?.Id);
         }
         else
         {
-            logger.LogWarning("Failed to create entity with name {EntityName}", request.Name);
+            logger.LogWarning("Failed to create resource with name {ResourceName}", request.Name);
         }
 
         return result;
@@ -64,11 +64,11 @@ public class EntityService(
 }
 
 // ❌ Incorrect - Traditional Constructor
-public class EntityController : ApiControllerBase
+public class ResourceController : ApiControllerBase
 {
     private readonly IMediator _mediator;
 
-    public EntityController(IMediator mediator)
+    public ResourceController(IMediator mediator)
     {
         _mediator = mediator;
     }
